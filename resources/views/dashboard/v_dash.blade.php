@@ -188,9 +188,9 @@
                         </div>                        
                         <div class="name ms-4">
                             <a href="{{ asset('suratmasuk/' . $masuk->file_surat) }}" target="_blank">
-                                {{ $masuk->file_surat ?? 'Judul Tidak Diketahui' }}
+                                Nama Surat : {{ $masuk->file_surat ?? 'Judul Tidak Diketahui' }}
                             </a>
-                            <h6 class="text-muted mb-0">{{ $masuk->tgl_masuk ?? 'Tanggal Tidak Tersedia' }}</h6>
+                            <h6 class="text-muted mb-0">Surat Masuk : {{ $masuk->tgl_masuk ?? 'Tanggal Tidak Tersedia' }}</h6>
                         </div>
                     </div>
                     @endforeach
@@ -211,9 +211,9 @@
                         </div>                        
                         <div class="name ms-4">
                             <a href="{{ asset('suratkeluar/' . $keluar->file_surat_keluar) }}" target="_blank">
-                                {{ $keluar->file_surat_keluar ?? 'Judul Tidak Diketahui' }}
+                                Nama Surat : {{ $keluar->file_surat_keluar ?? 'Judul Tidak Diketahui' }}
                             </a>
-                            <h6 class="text-muted mb-0">{{ $keluar->tgl_surat_keluar ?? 'Tanggal Tidak Tersedia' }}</h6>
+                            <h6 class="text-muted mb-0">Surat Keluar : {{ $keluar->tgl_surat_keluar ?? 'Tanggal Tidak Tersedia' }}</h6>
                         </div>
                     </div>
                     @endforeach
