@@ -44,8 +44,6 @@
                                 </div>
                             </div>
                             
-
-
                             <div class="table-responsive mt-3">
                                 <table class="table" id="table1">
                                     <thead>
@@ -92,10 +90,11 @@
                                                             data-id="{{ $item->id ?? '' }}">
                                                             <i class="fas fa-edit"></i> Edit
                                                         </button>
-                                                        <button class="btn btn-danger btn-sm deleteButton"
-                                                            data-id="{{ $item->id ?? '' }}">
-                                                            <i class="fas fa-trash"></i> Delete
-                                                        </button>
+                                                        @if(auth()->user()->role !== 'user')
+                                                            <button class="btn btn-danger btn-sm deleteButton" data-id="{{ $item->id ?? '' }}">
+                                                                <i class="fas fa-trash"></i> Delete
+                                                            </button>
+                                                        @endif
                                                         <button class="btn btn-info btn-sm viewButton"
                                                             data-id="{{ $item->id ?? '' }}">
                                                             <i class="fas fa-eye"></i> View
@@ -118,7 +117,7 @@
 
     <div class="modal fade" id="exampleModalScrollable" tabindex="-1" role="dialog"
         aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalScrollableTitle">Tambah Surat Masuk</h5>
@@ -128,7 +127,7 @@
                 </div>
                 <form action="#" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="_token" id="csrf" value="{{ csrf_token() }}">
-                    <div class="modal-body" style="max-height: 800px; overflow-y: auto;">
+                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                         <label for="no_agenda">Nomor Agenda: </label>
                         <div class="form-group">
                             <input id="no_agenda" type="text" placeholder="Nomor Agenda" class="form-control">
@@ -142,14 +141,16 @@
                             <input id="nomor_surat" type="text" placeholder="Nomor Surat" class="form-control">
                         </div>
                         <label for="tgl_masuk">Tanggal Surat Masuk: </label>
-                        <div class="form-group">
+                        <div class="form-group position-relative">
                             <input id="tgl_masuk" type="date" class="form-control mb-3 flatpickr-no-config"
                                 placeholder="Tanggal Surat Masuk">
+                            <i class="fas fa-calendar-alt position-absolute" style="right: 10px; top: 50%; transform: translateY(-50%); color: #6c757d; pointer-events: none;"></i>
                         </div>
                         <label for="tgl_terima">Tanggal Terima: </label>
-                        <div class="form-group">
+                        <div class="form-group position-relative ">
                             <input id="tgl_terima" type="date" class="form-control mb-3 flatpickr-no-config"
                                 placeholder="Tanggal Surat diterima">
+                            <i class="fas fa-calendar-alt position-absolute" style="right: 10px; top: 50%; transform: translateY(-50%); color: #6c757d; pointer-events: none;"></i>
                         </div>
                         <label for="asal_surat">Asal Surat: </label>
                         <div class="form-group">
@@ -193,11 +194,11 @@
             // Setup CSRF Token for AJAX requests
             $.ajaxSetup({
                 headers: {
-                    'X-CSRF-TOKEN': $('#csrf').val()
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 }
             });
-
-            // Handle file input change: show/hide fields
+    
+            // Handle file input change
             $('#file_surat').on('change', function() {
                 const file = this.files[0];
                 if (file) {
@@ -209,19 +210,22 @@
                     $('label[for="file_surat_display"]').hide();
                 }
             });
-
+    
             // Initialize: Hide file name label and field
             $('label[for="file_surat_display"]').hide();
             $('#file_surat_display').attr('type', 'hidden');
-
+    
             // Handle Add/Edit operation submission
             $('#exampleModalScrollable .btn-primary').on('click', function(e) {
                 e.preventDefault();
-
-                // Validation
+    
                 let isValid = true;
-                $('#exampleModalScrollable input, #exampleModalScrollable textarea').each(function() {
+    
+                // Validasi input
+                $('#exampleModalScrollable input:not(#csrf), #exampleModalScrollable textarea').each(function() {
+                    console.log('Checking:', $(this).attr('id'), $(this).val());
                     if ($(this).val() === '' && $(this).attr('id') !== 'file_surat') {
+                        console.log('Invalid:', $(this).attr('id'));
                         $(this).addClass('is-invalid');
                         isValid = false;
                     } else {
@@ -229,6 +233,8 @@
                     }
                 });
 
+
+    
                 if (!isValid) {
                     Swal.fire({
                         icon: 'warning',
@@ -237,8 +243,8 @@
                     });
                     return;
                 }
-
-                // Prepare form data
+    
+                // Buat FormData
                 let formData = new FormData();
                 formData.append('no_agenda', $('#no_agenda').val());
                 formData.append('kode_surat', $('#kode_surat').val());
@@ -249,16 +255,11 @@
                 formData.append('prihal', $('#prihal').val());
                 formData.append('file_surat', $('#file_surat')[0]?.files[0]);
                 formData.append('penerima', $('#penerima').val());
-
-                if ($('#file_surat')[0]?.files[0]) {
-                    const newFileName = $('#file_surat')[0]?.files[0].name;
-                    formData.append('file_surat_display', newFileName);
-                }
-
+    
                 const id = $(this).data('id');
                 const url = id ? `/suratmasuk/update/${id}` : '{{ route('suratmasuk.save') }}';
-
-                // AJAX request
+    
+                // AJAX Request
                 $.ajax({
                     url: url,
                     type: 'POST',
@@ -272,6 +273,8 @@
                                 title: 'Berhasil',
                                 text: response.message || 'Data berhasil disimpan!',
                             }).then(() => {
+                                $('#exampleModalScrollable').modal('hide');
+                                resetModal(); // Reset modal state
                                 window.location.reload();
                             });
                         } else {
@@ -292,17 +295,34 @@
                     }
                 });
             });
-
+    
+            // Reset modal function
+            function resetModal() {
+                $('#exampleModalScrollableTitle').text('Tambah Surat Masuk');
+                $('#exampleModalScrollable input, #exampleModalScrollable textarea').val('');
+                $('#exampleModalScrollable input, #exampleModalScrollable textarea')
+                    .prop('disabled', false)
+                    .removeClass('is-invalid');
+                $('#file_surat').val('').show();
+                $('#file_surat_display').val('').attr('type', 'hidden');
+                $('label[for="file_surat_display"]').hide();
+                $('#exampleModalScrollable .btn-primary').data('id', null);
+            }
+    
+            // Reset modal on close
+            $('#exampleModalScrollable').on('hidden.bs.modal', function() {
+                resetModal();
+            });
+    
             // Handle Edit button click
             $(document).on('click', '.editButton', function() {
                 const id = $(this).data('id');
-                $('#exampleModalScrollableTitle').text('Edit Surat Masuk'); // Update title
+                $('#exampleModalScrollableTitle').text('Edit Surat Masuk');
                 $.ajax({
                     url: `/suratmasuk/edit/${id}`,
                     type: 'GET',
                     success: function(response) {
                         if (response.success) {
-                            // Populate fields
                             $('#no_agenda').val(response.data.no_agenda);
                             $('#kode_surat').val(response.data.kode_surat);
                             $('#nomor_surat').val(response.data.nomor_surat);
@@ -311,21 +331,19 @@
                             $('#asal_surat').val(response.data.asal_surat);
                             $('#prihal').val(response.data.prihal);
                             $('#penerima').val(response.data.penerima);
-
+    
                             if (response.file_name) {
-                                $('#file_surat_display').val(response.file_name).attr('type',
-                                    'text');
+                                $('#file_surat_display').val(response.file_name).attr('type', 'text');
                                 $('label[for="file_surat_display"]').show();
                             } else {
                                 $('#file_surat_display').val('').attr('type', 'hidden');
                                 $('label[for="file_surat_display"]').hide();
                             }
-
+    
                             $('#exampleModalScrollable .btn-primary').data('id', id);
                             $('#exampleModalScrollable').modal('show');
                         } else {
-                            Swal.fire('Error', response.message ||
-                                'Gagal memuat data untuk edit!', 'error');
+                            Swal.fire('Error', response.message || 'Gagal memuat data untuk edit!', 'error');
                         }
                     },
                     error: function(xhr) {
@@ -334,44 +352,37 @@
                     }
                 });
             });
-
+    
             // Handle View button click
             $(document).on('click', '.viewButton', function() {
                 const id = $(this).data('id');
-                $('#exampleModalScrollableTitle').text('View Surat Masuk'); // Update title
+                $('#exampleModalScrollableTitle').text('View Surat Masuk');
                 $.ajax({
                     url: `/suratmasuk/edit/${id}`,
                     type: 'GET',
                     success: function(response) {
                         if (response.success) {
-                            // Populate fields
                             $('#no_agenda').val(response.data.no_agenda).prop('disabled', true);
-                            $('#kode_surat').val(response.data.kode_surat).prop('disabled',
-                                true);
-                            $('#nomor_surat').val(response.data.nomor_surat).prop('disabled',
-                                true);
+                            $('#kode_surat').val(response.data.kode_surat).prop('disabled', true);
+                            $('#nomor_surat').val(response.data.nomor_surat).prop('disabled', true);
                             $('#tgl_masuk').val(response.data.tgl_masuk).prop('disabled', true);
-                            $('#tgl_terima').val(response.data.tgl_terima).prop('disabled',
-                                true);
-                            $('#asal_surat').val(response.data.asal_surat).prop('disabled',
-                                true);
+                            $('#tgl_terima').val(response.data.tgl_terima).prop('disabled', true);
+                            $('#asal_surat').val(response.data.asal_surat).prop('disabled', true);
                             $('#prihal').val(response.data.prihal).prop('disabled', true);
                             $('#penerima').val(response.data.penerima).prop('disabled', true);
-
+    
                             if (response.data.file_surat) {
-                                $('#file_surat_display').val(response.data.file_surat).attr(
-                                    'type', 'text').prop('disabled', true);
+                                $('#file_surat_display').val(response.data.file_surat).attr('type', 'text').prop('disabled', true);
                                 $('label[for="file_surat_display"]').show();
                             } else {
                                 $('#file_surat_display').val('').attr('type', 'hidden');
                                 $('label[for="file_surat_display"]').hide();
                             }
-
+    
                             $('#file_surat').hide();
                             $('#exampleModalScrollable').modal('show');
                         } else {
-                            Swal.fire('Error', response.message ||
-                                'Gagal memuat data untuk ditampilkan!', 'error');
+                            Swal.fire('Error', response.message || 'Gagal memuat data untuk ditampilkan!', 'error');
                         }
                     },
                     error: function(xhr) {
@@ -380,17 +391,7 @@
                     }
                 });
             });
-
-            // Reset modal on close
-            $('#exampleModalScrollable').on('hidden.bs.modal', function() {
-                $('#exampleModalScrollableTitle').text('Tambah Surat Masuk'); // Reset title
-                $('#exampleModalScrollable input, #exampleModalScrollable textarea').prop('disabled', false)
-                    .removeClass('is-invalid');
-                $('#file_surat').show();
-                $('#file_surat_display').attr('type', 'hidden');
-                $('label[for="file_surat_display"]').hide();
-            });
-
+    
             // Handle Delete button click
             $(document).on('click', '.deleteButton', function() {
                 const id = $(this).data('id');
@@ -408,6 +409,9 @@
                         $.ajax({
                             url: `/suratmasuk/delete/${id}`,
                             type: 'DELETE',
+                            data: {
+                                _token: $('meta[name="csrf-token"]').attr('content') // Kirim token CSRF
+                            },
                             success: function(response) {
                                 if (response.success) {
                                     Swal.fire('Berhasil!', response.message, 'success')
@@ -418,13 +422,12 @@
                             },
                             error: function(xhr) {
                                 console.error(xhr.responseText);
-                                Swal.fire('Error!', 'Terjadi kesalahan pada server!',
-                                    'error');
+                                Swal.fire('Error!', 'Terjadi kesalahan pada server!', 'error');
                             }
                         });
                     }
                 });
             });
         });
-    </script>
+    </script>    
 @endsection
